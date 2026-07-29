@@ -1,0 +1,50 @@
+Project Name: MediQuery Navigator
+
+Project Description:
+MediQuery Navigator is a standalone medical research and study assistant that allows users to upload medical documents, case reports, research papers, and clinical notes. The system uses retrieval-augmented generation (RAG) and hybrid semantic search to turn medical files into searchable knowledge, while preserving user ownership and document privacy.
+
+Target Users:
+- Medical students
+- Researchers
+- Clinicians
+- Healthcare educators
+
+Core Features:
+1. Document Upload
+   - Upload medical text files, PDFs, and clinical notes.
+   - Capture document metadata such as user_id, file_name, document_type, tags, and uploaded_at.
+   - Store documents in a secure user-scoped repository.
+2. User-Scoped RAG
+   - Chunk uploaded documents and extract embeddings.
+   - Use hybrid search combining semantic vectors and metadata filters.
+   - Ensure query results only return chunks belonging to the requesting user or to shared research groups.
+3. Search and Query Interface
+   - Provide a search UI for natural language medical queries.
+   - Return ranked documents and generated answers based on relevant chunk context.
+   - Support follow-up questions with session-aware context.
+4. Medical Knowledge Synthesis
+   - Generate concise medical summaries and explanations.
+   - Compare related medical findings or express results as clinical insights.
+   - Provide source citations from uploaded documents.
+5. Document Management
+   - View uploaded file list with metadata and ingestion status.
+   - Allow users to tag and categorize documents (e.g., cardiology, oncology, radiology).
+   - Allow users to download or delete their own documents.
+6. Learn Mode
+   - Offer a study mode for reviewing notes, flashcards, or medical definitions from uploaded content.
+   - Provide topic-based summaries and knowledge extraction.
+7. Security and Privacy
+   - Enforce user isolation for document retrieval.
+   - Use metadata and permissions so one user’s medical documents are not accessible to another user without explicit sharing.
+
+Technical Notes:
+- Backend should use a secure authenticated API.
+- Leverage a vector database or PostgreSQL with pgvector for embeddings.
+- Use a hybrid search strategy: semantic similarity plus exact metadata tag matching.
+- Document ingestion and embedding should be handled by worker processes.
+- The project should be separate from Case Compass and focus on medical/research use cases.
+
+Next Steps:
+- Define architecture and file tree for MediQuery Navigator.
+- Create documentation for high-level requirements and user workflows.
+- Decide whether this project includes a frontend UI or if it is a backend reference implementation only.
