@@ -1,5 +1,8 @@
 """Document endpoints: upload (as raw text) and list your own docs."""
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -8,6 +11,8 @@ from app.models.document import Document
 from app.models.user import User
 from app.queue.rabbitmq import rabbitmq
 from app.schemas.document import DocumentCreate, DocumentRead
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
@@ -35,7 +40,13 @@ async def create_document(
     db.commit()
     db.refresh(doc)
 
-    await rabbitmq.publish({"document_id": str(doc.id)})
+    try:
+        await rabbitmq.publish({"document_id": str(doc.id)})
+    except Exception:  # noqa: BLE001
+        log.exception(
+            "Could not queue ingestion job for document %s; document is saved and remains pending",
+            doc.id,
+        )
     return doc
 
 
@@ -45,10 +56,13 @@ def list_documents(
     current_user: User = Depends(get_current_user),
 ) -> list[Document]:
     """List documents owned by the current user."""
-    return (
-        db.query(Document)
-        .filter(Document.user_id == current_user.id)
-        .order_by(Document.created_at.desc())
+    return list(
+        db.execute(
+            select(Document)
+            .where(Document.user_id == current_user.id)
+            .order_by(Document.created_at.desc())
+        )
+        .scalars()
         .all()
     )
 

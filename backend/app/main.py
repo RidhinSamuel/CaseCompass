@@ -14,7 +14,7 @@ from app.queue.rabbitmq import rabbitmq
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(app: FastAPI):
     """App lifespan: init logging + open RabbitMQ connection on startup."""
     setup_logging()
     try:

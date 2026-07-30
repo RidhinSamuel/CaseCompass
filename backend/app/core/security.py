@@ -2,7 +2,7 @@
 
 Kept minimal and focused; expand only when auth requirements grow.
 """
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -25,7 +25,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 def create_access_token(subject: str, expires_delta: timedelta | None = None) -> str:
     """Create a signed JWT access token carrying the user's id as `sub`."""
-    expire = datetime.now(UTC) + (
+    expire = datetime.now(timezone.utc) + (
         expires_delta or timedelta(minutes=settings.jwt_expire_minutes)
     )
     payload = {"sub": subject, "exp": expire}

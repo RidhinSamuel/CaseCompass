@@ -1,6 +1,7 @@
 """Authentication routes: register + login + who-am-I."""
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -15,7 +16,7 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 def register(payload: UserCreate, db: Session = Depends(get_db)) -> User:
     """Create a new user account."""
-    existing = db.query(User).filter(User.email == payload.email).one_or_none()
+    existing = db.execute(select(User).where(User.email == payload.email)).scalars().first()
     if existing is not None:
         raise HTTPException(status_code=409, detail="Email already registered")
     user = User(
@@ -35,7 +36,7 @@ def login(
     db: Session = Depends(get_db),
 ) -> Token:
     """Exchange email/password for a JWT."""
-    user = db.query(User).filter(User.email == form.username).one_or_none()
+    user = db.execute(select(User).where(User.email == form.username)).scalars().first()
     if user is None or not verify_password(form.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     return Token(access_token=create_access_token(subject=str(user.id)))

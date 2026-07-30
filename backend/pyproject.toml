@@ -2,7 +2,7 @@
 name = "case-compass-backend"
 version = "0.1.0"
 description = "Case Compass FastAPI backend: user-scoped RAG for judicial documents"
-readme = "README.md"
+readme = "../README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "Ridhin Samuel" }]
@@ -20,7 +20,9 @@ dependencies = [
     "aio-pika>=9.4",
     "python-multipart>=0.0.9",
     "python-jose[cryptography]>=3.3",
+    "bcrypt==3.2.0",
     "passlib[bcrypt]>=1.7",
+    "pydantic[email]>=2.6",
     "langchain>=0.2.0",
     "langchain-community>=0.2.0",
     "langchain-huggingface>=0.0.3",
