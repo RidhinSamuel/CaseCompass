@@ -25,7 +25,11 @@ body {
     radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.12) 0px, transparent 50%),
     radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.12) 0px, transparent 50%);
   background-attachment: fixed;
+<<<<<<< HEAD
   min-h-screen;
+=======
+  min-height: 100vh;
+>>>>>>> bb82cedc2e563d85a6f093172bb4135cbe364134
 }
 
 h1, h2, h3, h4, h5, h6 {

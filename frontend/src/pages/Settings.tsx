@@ -4,7 +4,10 @@ import { Settings as SettingsIcon, User, Shield, Cpu, Moon, Sun } from 'lucide-r
 
 export const Settings: React.FC = () => {
   const { data: user } = useGetMeQuery();
+<<<<<<< HEAD
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+=======
+>>>>>>> bb82cedc2e563d85a6f093172bb4135cbe364134
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 1rem 3rem' }}>

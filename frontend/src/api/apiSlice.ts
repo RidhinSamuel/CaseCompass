@@ -14,7 +14,11 @@ export interface Document {
 export interface SearchHit {
   chunk_id: string;
   document_id: string;
+<<<<<<< HEAD
   document_title: str;
+=======
+  document_title: string;
+>>>>>>> bb82cedc2e563d85a6f093172bb4135cbe364134
   content: string;
   score: number;
   case_id?: string | null;
