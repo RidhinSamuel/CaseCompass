@@ -18,8 +18,10 @@ from app.core.config import settings
 engine = create_engine(
     settings.database_url,
     pool_pre_ping=True,   # detect dead connections up front
-    pool_size=10,
-    max_overflow=20,
+    pool_size=settings.db_pool_size,
+    max_overflow=settings.db_max_overflow,
+    pool_recycle=1800,    # avoid stale connections behind cloud load balancers/NAT
+    connect_args={"connect_timeout": 5},
     future=True,
 )
 

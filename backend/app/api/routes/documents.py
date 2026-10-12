@@ -1,5 +1,6 @@
 """Document endpoints: upload (as raw text) and list your own docs."""
 import logging
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -69,7 +70,7 @@ def list_documents(
 
 @router.get("/{document_id}", response_model=DocumentRead)
 def get_document(
-    document_id: str,
+    document_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Document:

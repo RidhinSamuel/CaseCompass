@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useGetDocumentsQuery, useCreateDocumentMutation } from '../api/apiSlice';
-import { Upload, FileText, CheckCircle2, Clock, AlertTriangle, Plus, RefreshCw } from 'lucide-react';
+import { Upload, FileText, Plus, RefreshCw } from 'lucide-react';
 
 export const Documents: React.FC = () => {
   const { data: documents = [], isLoading, refetch } = useGetDocumentsQuery();

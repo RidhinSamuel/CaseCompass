@@ -2,13 +2,12 @@
 name = "case-compass-backend"
 version = "0.1.0"
 description = "Case Compass FastAPI backend: user-scoped RAG for judicial documents"
-readme = "../README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "Ridhin Samuel" }]
 
 dependencies = [
-    "fastapi>=0.115.0",
+    "fastapi[standard]>=0.115.0",
     "uvicorn[standard]>=0.30.0",
     "pydantic>=2.6",
     "pydantic-settings>=2.2",
@@ -26,10 +25,8 @@ dependencies = [
     "langchain>=0.2.0",
     "langchain-community>=0.2.0",
     "langchain-huggingface>=0.0.3",
-    "sentence-transformers>=3.0.0",
+    "openai>=1.40",
     "huggingface-hub>=0.24",
-    "transformers>=4.42",
-    "torch>=2.3",
     "numpy>=1.26",
     "tenacity>=8.2",
     "python-dotenv>=1.0",

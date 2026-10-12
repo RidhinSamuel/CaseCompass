@@ -9,7 +9,9 @@ from app.db.base import Base
 from app.models import chunk, document, user  # noqa: F401  (register models)
 
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# Escape "%" because alembic's config is parsed by configparser, which treats
+# "%" as interpolation (URL-encoded passwords often contain it).
+config.set_main_option("sqlalchemy.url", settings.database_url.replace("%", "%%"))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

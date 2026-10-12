@@ -5,12 +5,13 @@ container log collectors (json can be added later if needed).
 """
 import logging
 import sys
+from urllib.parse import urlsplit, urlunsplit
 
 
 def setup_logging(level: str = "INFO") -> None:
     """Configure root logger. Idempotent — safe to call multiple times."""
     root = logging.getLogger()
-    root.setLevel(level)
+    root.setLevel(level.upper())
 
     # Remove any pre-existing handlers to avoid duplicate log lines.
     for handler in list(root.handlers):
@@ -24,3 +25,12 @@ def setup_logging(level: str = "INFO") -> None:
         )
     )
     root.addHandler(handler)
+
+
+def redact_url(url: str) -> str:
+    """Hide the password in a connection URL so it is safe to log."""
+    parts = urlsplit(url)
+    if parts.password is None:
+        return url
+    netloc = parts.netloc.replace(f":{parts.password}@", ":***@", 1)
+    return urlunsplit(parts._replace(netloc=netloc))

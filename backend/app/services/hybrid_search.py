@@ -62,7 +62,7 @@ def hybrid_search(
             FROM document_chunks c
             JOIN documents d ON d.id = c.document_id
             WHERE c.user_id = :user_id
-              AND (:case_id IS NULL OR c.case_id = :case_id)
+              AND (CAST(:case_id AS TEXT) IS NULL OR c.case_id = CAST(:case_id AS TEXT))
             ORDER BY c.embedding <=> CAST(:qvec AS vector)
             LIMIT :vec_k
         ),
@@ -75,7 +75,7 @@ def hybrid_search(
                 ) AS kw_score
             FROM document_chunks c
             WHERE c.user_id = :user_id
-              AND (:case_id IS NULL OR c.case_id = :case_id)
+              AND (CAST(:case_id AS TEXT) IS NULL OR c.case_id = CAST(:case_id AS TEXT))
               AND to_tsvector('english', c.content) @@ plainto_tsquery('english', :qtext)
             ORDER BY kw_score DESC
             LIMIT :vec_k
@@ -87,7 +87,8 @@ def hybrid_search(
             v.content,
             v.case_id,
             v.chunk_index,
-            (:alpha * v.vec_score) + ((1 - :alpha) * COALESCE(kw.kw_score, 0)) AS score
+            (CAST(:alpha AS FLOAT) * v.vec_score)
+                + ((1 - CAST(:alpha AS FLOAT)) * COALESCE(kw.kw_score, 0)) AS score
         FROM vec v
         LEFT JOIN kw ON kw.chunk_id = v.chunk_id
         ORDER BY score DESC
@@ -106,7 +107,8 @@ def hybrid_search(
     rows = db.execute(
         sql,
         {
-            "qvec": query_embedding,
+            # pgvector's text format: "[0.1,0.2,...]"
+            "qvec": "[" + ",".join(f"{x:.8f}" for x in query_embedding) + "]",
             "qtext": query_text,
             "user_id": user_id,
             "case_id": case_id,

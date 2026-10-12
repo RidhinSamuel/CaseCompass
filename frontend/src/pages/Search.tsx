@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSearchCasesMutation, useGetDocumentsQuery } from '../api/apiSlice';
-import { Search as SearchIcon, Bot, BookOpen, Filter, CheckCircle, Sparkles } from 'lucide-react';
+import { Search as SearchIcon, Bot, BookOpen, Filter, Sparkles } from 'lucide-react';
 
 export const Search: React.FC = () => {
   const [query, setQuery] = useState('');

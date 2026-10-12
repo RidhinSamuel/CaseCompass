@@ -14,6 +14,7 @@ import aio_pika
 from aio_pika.abc import AbstractRobustConnection
 
 from app.core.config import settings
+from app.core.logging import redact_url
 
 log = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ class RabbitMQClient:
         """Establish a robust connection with auto-reconnect."""
         async with self._lock:
             if self._connection is None or self._connection.is_closed:
-                log.info("Connecting to RabbitMQ at %s", self.url)
+                log.info("Connecting to RabbitMQ at %s", redact_url(self.url))
                 self._connection = await aio_pika.connect_robust(self.url)
         return self._connection
 

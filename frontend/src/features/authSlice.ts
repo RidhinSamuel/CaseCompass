@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-interface User {
+export interface User {
   id: string;
   email: string;
   full_name?: string | null;
@@ -14,7 +14,28 @@ interface AuthState {
   isAuthenticated: boolean;
 }
 
-const initialToken = localStorage.getItem('token');
+// localStorage can throw (private mode, blocked storage); never crash the app.
+const readToken = (): string | null => {
+  try {
+    return localStorage.getItem('token');
+  } catch {
+    return null;
+  }
+};
+
+const writeToken = (token: string | null): void => {
+  try {
+    if (token) {
+      localStorage.setItem('token', token);
+    } else {
+      localStorage.removeItem('token');
+    }
+  } catch {
+    // Ignore: the session still works in memory.
+  }
+};
+
+const initialToken = readToken();
 
 const initialState: AuthState = {
   token: initialToken,
@@ -35,7 +56,7 @@ const authSlice = createSlice({
       if (action.payload.user) {
         state.user = action.payload.user;
       }
-      localStorage.setItem('token', action.payload.token);
+      writeToken(action.payload.token);
     },
     setUser: (state, action: PayloadAction<User>) => {
       state.user = action.payload;
@@ -44,7 +65,7 @@ const authSlice = createSlice({
       state.token = null;
       state.user = null;
       state.isAuthenticated = false;
-      localStorage.removeItem('token');
+      writeToken(null);
     },
   },
 });

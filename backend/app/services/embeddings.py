@@ -1,13 +1,12 @@
-"""Embedding service — wraps a HuggingFace Sentence-Transformer model.
+"""Embedding service — Hugging Face Inference API via LangChain.
 
-The model is loaded lazily on first use so the API can start quickly.
-Free, open-source, and runs locally (CPU or GPU) with no paid tokens.
+Uses the hosted `sentence-transformers/all-MiniLM-L6-v2` model, so no model
+weights or torch are loaded locally. Requires `HF_TOKEN`.
 """
 import logging
 from functools import lru_cache
-from typing import cast
 
-import numpy as np
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
 
 from app.core.config import settings
 
@@ -15,29 +14,27 @@ log = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=1)
-def _get_model():
-    """Lazy-load and cache the sentence-transformer model."""
-    from sentence_transformers import SentenceTransformer  # local import: heavy
+def _get_model() -> HuggingFaceEndpointEmbeddings:
+    """Create and cache the Hugging Face endpoint embeddings client."""
+    if not settings.hf_token:
+        raise RuntimeError("HF_TOKEN is not set; it is required for embeddings.")
 
-    log.info("Loading embedding model: %s", settings.hf_embedding_model)
-    return SentenceTransformer(settings.hf_embedding_model)
+    log.info("Using Hugging Face endpoint embeddings: %s", settings.hf_embedding_model)
+    embedding_model: HuggingFaceEndpointEmbeddings = HuggingFaceEndpointEmbeddings(
+        model=settings.hf_embedding_model,
+        task="feature-extraction",
+        huggingfacehub_api_token=settings.hf_token,
+    )
+    return embedding_model
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
     """Embed a batch of texts. Returns a list of float vectors."""
     if not texts:
         return []
-    model = _get_model()
-    vectors = model.encode(
-        texts,
-        batch_size=32,
-        show_progress_bar=False,
-        convert_to_numpy=True,
-        normalize_embeddings=True,  # cosine-friendly
-    )
-    return cast(np.ndarray, vectors).tolist()
+    return _get_model().embed_documents(texts)
 
 
 def embed_query(query: str) -> list[float]:
     """Embed a single query string."""
-    return embed_texts([query])[0]
+    return _get_model().embed_query(query)

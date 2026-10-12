@@ -1,12 +1,13 @@
 """RAG orchestrator — glues embeddings, hybrid search, and an LLM together.
 
-The LLM is a small open-source HuggingFace model (default: flan-t5-base)
-so the whole pipeline runs without paid API calls.
+The LLM is Google Gemini, called through its OpenAI-compatible API.
+Requires `GEMINI_API_KEY`.
 """
 import logging
 import uuid
 from functools import lru_cache
 
+from openai import OpenAI
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -16,28 +17,21 @@ from app.services.hybrid_search import hybrid_search
 
 log = logging.getLogger(__name__)
 
-_ANSWER_PROMPT = """You are Case Compass, a judicial research assistant.
-Use ONLY the context below to answer the user's question. If the answer
-cannot be found in the context, say "I could not find that in your documents."
+_SYSTEM_PROMPT = """You are Case Compass, a judicial research assistant.
+Use ONLY the retrieved documents below to answer the user's question. If the answer
+cannot be found in them, say "I could not find that in your documents."
 
-Context:
-{context}
-
-Question: {question}
-Answer:"""
+{context}"""
 
 
 @lru_cache(maxsize=1)
-def _get_llm():
-    """Lazy-load a small HF text2text model. Cached for the process lifetime."""
-    from transformers import pipeline  # local import: heavy
+def _get_client() -> OpenAI:
+    """Create the Gemini client. Cached for the process lifetime."""
+    if not settings.gemini_api_key:
+        raise RuntimeError("GEMINI_API_KEY is not set; it is required for answers.")
 
-    log.info("Loading LLM: %s", settings.hf_llm_model)
-    return pipeline(
-        "text2text-generation",
-        model=settings.hf_llm_model,
-        max_new_tokens=256,
-    )
+    log.info("Using Gemini LLM: %s", settings.gemini_model)
+    return OpenAI(api_key=settings.gemini_api_key, base_url=settings.gemini_base_url)
 
 
 def answer_question(
@@ -76,11 +70,14 @@ def answer_question(
     context = "\n\n---\n\n".join(
         f"[{i + 1}] {c.content}" for i, c in enumerate(chunks)
     )
-    prompt = _ANSWER_PROMPT.format(context=context, question=query)
-
-    llm = _get_llm()
-    result = llm(prompt)
-    answer_text = result[0]["generated_text"].strip() if result else ""
+    response = _get_client().chat.completions.create(
+        model=settings.gemini_model,
+        messages=[
+            {"role": "system", "content": _SYSTEM_PROMPT.format(context=context)},
+            {"role": "user", "content": query},
+        ],
+    )
+    answer_text = (response.choices[0].message.content or "").strip()
 
     hits = [
         SearchHit(
