@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 .env
 .env.*
+!.env.example
 .venv/
 venv/
 venv.bak/
@@ -66,3 +67,6 @@ docker-compose.override.yml
 # Coverage
 coverage/
 htmlcov/
+
+# graphify knowledge graph (generated locally)
+graphify-out/
