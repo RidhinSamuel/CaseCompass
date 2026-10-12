@@ -48,7 +48,7 @@ def answer_question(
     1. Embed the query.
     2. Hybrid-search the user's own chunks (user-scoped by SQL filter).
     3. Build a prompt with the retrieved context.
-    4. Generate an answer with the local HF LLM.
+    4. Generate an answer with Gemini.
     """
     query_vec = embed_query(query)
     chunks = hybrid_search(

@@ -46,7 +46,7 @@ export const Settings: React.FC = () => {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'var(--text-muted)' }}>LLM Model:</span>
-                  <span className="badge badge-green">google/flan-t5-base</span>
+                  <span className="badge badge-green">gemini-2.5-flash</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'var(--text-muted)' }}>Vector Store:</span>
