@@ -22,6 +22,15 @@ def app():
 
 
 @pytest.fixture()
-def client(app):
+def client(app, monkeypatch):
+    # The app's lifespan connects to RabbitMQ; unit tests must not depend on a
+    # live broker (a half-up broker made the connect hang forever).
+    from app.queue.rabbitmq import rabbitmq
+
+    async def _noop(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(rabbitmq, "connect", _noop)
+    monkeypatch.setattr(rabbitmq, "close", _noop)
     with TestClient(app) as c:
         yield c

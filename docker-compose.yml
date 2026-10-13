@@ -49,6 +49,10 @@ services:
     container_name: case_compass_backend
     ports:
       - "8000:8000"
+    # API keys (HF_TOKEN, GEMINI_API_KEY). `environment` below wins on conflicts.
+    env_file:
+      - path: ./backend/.env
+        required: false
     environment:
       APP_ENV: development
       DEBUG: "true"
@@ -56,6 +60,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
       JWT_SECRET_KEY: docker-dev-secret-key-change-me
+      EMBEDDING_CACHE_DIR: /app/models   # model baked into the image; overrides backend/.env
       CORS_ORIGINS: '["http://localhost:5173", "http://localhost:3000"]'
     depends_on:
       postgres:
@@ -71,12 +76,16 @@ services:
       dockerfile: Dockerfile
     container_name: case_compass_worker
     command: ["python", "-m", "app.workers.ingest_worker"]
+    env_file:
+      - path: ./backend/.env
+        required: false
     environment:
       APP_ENV: development
       DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/case_compass
       REDIS_URL: redis://redis:6379/0
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
       JWT_SECRET_KEY: docker-dev-secret-key-change-me
+      EMBEDDING_CACHE_DIR: /app/models   # model baked into the image; overrides backend/.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -89,7 +98,7 @@ services:
       dockerfile: Dockerfile
     container_name: case_compass_frontend
     ports:
-      - "5173:5173"
+      - "5173:80"   # nginx listens on 80 inside the container
     depends_on:
       - backend
 

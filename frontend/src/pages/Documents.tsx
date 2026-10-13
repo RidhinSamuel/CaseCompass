@@ -1,28 +1,87 @@
 import React, { useState } from 'react';
-import { useGetDocumentsQuery, useCreateDocumentMutation } from '../api/apiSlice';
-import { Upload, FileText, Plus, RefreshCw } from 'lucide-react';
+import {
+  useGetDocumentsQuery,
+  useCreateDocumentMutation,
+  useUploadDocumentMutation,
+  useDeleteDocumentMutation,
+  useRetryDocumentMutation,
+} from '../api/apiSlice';
+import { Upload, FileText, Plus, RefreshCw, Trash2, RotateCcw } from 'lucide-react';
+
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
+const formatSize = (bytes: number) =>
+  bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 
 export const Documents: React.FC = () => {
   const { data: documents = [], isLoading, refetch } = useGetDocumentsQuery();
   const [createDocument, { isLoading: isCreating }] = useCreateDocumentMutation();
+  const [uploadDocument, { isLoading: isUploading }] = useUploadDocumentMutation();
+  const busy = isCreating || isUploading;
+  const [deleteDocument] = useDeleteDocumentMutation();
+  const [retryDocument] = useRetryDocumentMutation();
+  // Id of the document whose Delete/Retry request is in flight.
+  const [actionId, setActionId] = useState<string | null>(null);
 
+  const handleDelete = async (id: string, docTitle: string) => {
+    if (!window.confirm(`Delete "${docTitle}"? This also removes its search data and cannot be undone.`)) return;
+    setActionId(id);
+    try {
+      await deleteDocument(id).unwrap();
+    } catch (err: any) {
+      alert('Delete failed: ' + (err.data?.detail || 'Unknown error'));
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const handleRetry = async (id: string) => {
+    setActionId(id);
+    try {
+      await retryDocument(id).unwrap();
+    } catch (err: any) {
+      alert('Retry failed: ' + (err.data?.detail || 'Unknown error'));
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const [mode, setMode] = useState<'pdf' | 'text'>('pdf');
   const [title, setTitle] = useState('');
   const [caseId, setCaseId] = useState('');
   const [rawText, setRawText] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     setSuccessMsg(null);
     try {
-      await createDocument({
-        title,
-        case_id: caseId || undefined,
-        raw_text: rawText,
-      }).unwrap();
+      if (mode === 'pdf') {
+        if (!file) {
+          setFileError('Please choose a PDF file.');
+          return;
+        }
+        const formData = new FormData();
+        formData.append('title', title);
+        if (caseId) formData.append('case_id', caseId);
+        formData.append('file', file);
+        await uploadDocument(formData).unwrap();
+        setFile(null);
+        setFileError(null);
+        const input = (e.target as HTMLFormElement).querySelector<HTMLInputElement>('input[type="file"]');
+        if (input) input.value = '';
+      } else {
+        await createDocument({
+          title,
+          case_id: caseId || undefined,
+          raw_text: rawText,
+        }).unwrap();
+        setRawText('');
+      }
       setTitle('');
       setCaseId('');
-      setRawText('');
       setSuccessMsg('Document uploaded! RabbitMQ worker will chunk and embed it asynchronously.');
     } catch (err: any) {
       alert('Upload failed: ' + (err.data?.detail || 'Unknown error'));
@@ -72,21 +131,69 @@ export const Documents: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Case Text Content *</label>
-                <textarea
-                  required
-                  rows={8}
-                  className="input-field"
-                  placeholder="Paste legal document text, judgement, petition, or contract clauses here..."
-                  value={rawText}
-                  onChange={(e) => setRawText(e.target.value)}
-                  style={{ fontFamily: 'inherit', resize: 'vertical' }}
-                />
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setMode('pdf')}
+                  className={mode === 'pdf' ? 'btn-primary' : 'btn-secondary'}
+                  style={{ flex: 1, justifyContent: 'center', padding: '0.5rem', fontSize: '0.85rem' }}
+                >
+                  Upload PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode('text')}
+                  className={mode === 'text' ? 'btn-primary' : 'btn-secondary'}
+                  style={{ flex: 1, justifyContent: 'center', padding: '0.5rem', fontSize: '0.85rem' }}
+                >
+                  Paste text
+                </button>
               </div>
 
-              <button type="submit" disabled={isCreating} className="btn-primary" style={{ justifyContent: 'center', padding: '0.8rem' }}>
-                {isCreating ? 'Publishing Ingestion Job...' : <><Plus size={18} /> Queue Ingestion Job</>}
+              {mode === 'pdf' ? (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.5rem', color: 'var(--text-muted)' }}>PDF File * (max 10 MB)</label>
+                  <input
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    className="input-field"
+                    onChange={(e) => {
+                      setFileError(null);
+                      const f = e.target.files?.[0] ?? null;
+                      if (f && f.size > MAX_FILE_BYTES) {
+                        setFile(null);
+                        setFileError('File is too large (max 10 MB).');
+                        return;
+                      }
+                      setFile(f);
+                    }}
+                  />
+                  {file && (
+                    <p style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      {file.name} ({formatSize(file.size)})
+                    </p>
+                  )}
+                  {fileError && (
+                    <p style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#f87171' }}>{fileError}</p>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Case Text Content *</label>
+                  <textarea
+                    required
+                    rows={8}
+                    className="input-field"
+                    placeholder="Paste legal document text, judgement, petition, or contract clauses here..."
+                    value={rawText}
+                    onChange={(e) => setRawText(e.target.value)}
+                    style={{ fontFamily: 'inherit', resize: 'vertical' }}
+                  />
+                </div>
+              )}
+
+              <button type="submit" disabled={busy} className="btn-primary" style={{ justifyContent: 'center', padding: '0.8rem' }}>
+                {busy ? 'Publishing Ingestion Job...' : <><Plus size={18} /> Queue Ingestion Job</>}
               </button>
             </form>
           </div>
@@ -119,6 +226,9 @@ export const Documents: React.FC = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div>
                         <h4 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>{doc.title}</h4>
+                        {doc.source_filename && (
+                          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>{doc.source_filename}</p>
+                        )}
                         {doc.case_id && (
                           <span style={{ fontSize: '0.8rem', color: '#93c5fd', background: 'rgba(59, 130, 246, 0.15)', padding: '0.1rem 0.5rem', borderRadius: '4px', display: 'inline-block', marginBottom: '0.5rem' }}>
                             Case: {doc.case_id}
@@ -130,9 +240,32 @@ export const Documents: React.FC = () => {
                       </span>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.75rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1.5rem', marginTop: '0.75rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                       <span>Chunks: <strong style={{ color: '#fff' }}>{doc.chunk_count}</strong></span>
                       <span>Created: {new Date(doc.created_at).toLocaleDateString()}</span>
+                      <div style={{ display: 'flex', gap: '0.5rem', marginLeft: 'auto' }}>
+                        {doc.status === 'failed' && (
+                          <button
+                            type="button"
+                            onClick={() => handleRetry(doc.id)}
+                            disabled={actionId === doc.id}
+                            className="btn-secondary"
+                            style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
+                          >
+                            <RotateCcw size={13} /> Retry
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(doc.id, doc.title)}
+                          disabled={actionId === doc.id}
+                          className="btn-secondary"
+                          style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', color: '#fca5a5' }}
+                          aria-label={`Delete ${doc.title}`}
+                        >
+                          <Trash2 size={13} /> Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}

@@ -5,7 +5,7 @@ credentials in source. Use `.env` for local dev; the file is git-ignored.
 """
 import json
 from functools import lru_cache
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -51,7 +51,16 @@ class Settings(BaseSettings):
     hf_embedding_model: str = Field(
         default="sentence-transformers/all-MiniLM-L6-v2", alias="HF_EMBEDDING_MODEL"
     )
-    gemini_model: str = Field(default="gemini-2.5-flash", alias="GEMINI_MODEL")
+    # "local" runs the model on this machine with fastembed (ONNX, no credits);
+    # "hf" calls the Hugging Face Inference API (needs HF_TOKEN and credits).
+    embedding_backend: Literal["local", "hf"] = Field(
+        default="local", alias="EMBEDDING_BACKEND"
+    )
+    # "cuda" requires the `fastembed-gpu` package instead of `fastembed`.
+    embedding_device: Literal["cpu", "cuda"] = Field(default="cpu", alias="EMBEDDING_DEVICE")
+    # Where fastembed stores downloaded model files (None = fastembed default).
+    embedding_cache_dir: str | None = Field(default=None, alias="EMBEDDING_CACHE_DIR")
+    gemini_model: str = Field(default="gemini-3.8-flash", alias="GEMINI_MODEL")
     gemini_api_key: str | None = Field(default=None, alias="GEMINI_API_KEY")
     gemini_base_url: str = Field(
         default="https://generativelanguage.googleapis.com/v1beta/openai/",

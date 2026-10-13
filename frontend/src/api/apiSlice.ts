@@ -13,6 +13,7 @@ export interface Document {
   user_id: string;
   case_id?: string | null;
   title: string;
+  source_filename?: string | null;
   status: string;
   chunk_count: number;
   created_at: string;
@@ -65,7 +66,8 @@ export interface SearchRequest {
 
 // API base URL: same-origin "/api" by default (nginx / Vite proxy forward it).
 // Set VITE_API_BASE_URL at build time when the API lives on another domain.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
+// `||` (not `??`): the Docker build passes an empty string when the arg is unset.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: API_BASE_URL,
@@ -135,6 +137,23 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Document'],
     }),
+    uploadDocument: builder.mutation<Document, FormData>({
+      // No Content-Type header: the browser adds the multipart boundary.
+      query: (formData) => ({
+        url: '/documents/upload',
+        method: 'POST',
+        body: formData,
+      }),
+      invalidatesTags: ['Document'],
+    }),
+    deleteDocument: builder.mutation<void, string>({
+      query: (id) => ({ url: `/documents/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['Document'],
+    }),
+    retryDocument: builder.mutation<Document, string>({
+      query: (id) => ({ url: `/documents/${id}/retry`, method: 'POST' }),
+      invalidatesTags: ['Document'],
+    }),
     searchCases: builder.mutation<SearchResponse, SearchRequest>({
       query: (searchParams) => ({
         url: '/search',
@@ -151,5 +170,8 @@ export const {
   useGetMeQuery,
   useGetDocumentsQuery,
   useCreateDocumentMutation,
+  useUploadDocumentMutation,
+  useDeleteDocumentMutation,
+  useRetryDocumentMutation,
   useSearchCasesMutation,
 } = apiSlice;

@@ -147,6 +147,14 @@ npm install
 npm run dev
 ```
 
+### Uploading documents
+
+On the Documents page you can upload a **PDF** (or paste text). The API extracts the text with PyMuPDF (`POST /api/documents/upload`, multipart: `title`, optional `case_id`, `file`), then the usual chunk and embed pipeline runs.
+
+- Maximum size is 10 MB, matching the nginx limit.
+- Scanned or image-only PDFs, and password-protected PDFs, are rejected (422). OCR is not supported yet.
+- Licensing: PyMuPDF is AGPL-3.0 licensed. That is fine for open-source or personal use, but closed-source commercial deployments need an Artifex commercial license (or swap to `pypdf`).
+
 ---
 
 ## 🧪 Testing

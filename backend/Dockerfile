@@ -14,6 +14,10 @@ COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-install-project
 
+# Bake the embedding model into the image so containers never download it at startup.
+ARG EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+RUN /app/.venv/bin/python -c "from fastembed import TextEmbedding; TextEmbedding('${EMBEDDING_MODEL}', cache_dir='/app/models')"
+
 COPY app ./app
 COPY alembic ./alembic
 COPY alembic.ini ./
@@ -24,7 +28,8 @@ FROM python:3.11-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/app/.venv/bin:$PATH" \
-    HF_HOME=/home/app/.cache/huggingface
+    HF_HOME=/home/app/.cache/huggingface \
+    EMBEDDING_CACHE_DIR=/app/models
 
 RUN groupadd --system app && useradd --system --gid app --create-home app
 

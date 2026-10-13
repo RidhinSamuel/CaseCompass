@@ -17,6 +17,7 @@ class DocumentRead(BaseModel):
     user_id: uuid.UUID
     case_id: str | None
     title: str
+    source_filename: str | None = None
     status: str
     chunk_count: int
     created_at: datetime
